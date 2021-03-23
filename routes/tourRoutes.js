@@ -8,7 +8,7 @@ router.param('id', tourController.validateTourID);
 router
   .route('/')
   .get(tourController.getAllTours)
-  .post(tourController.validateRequestBody, tourController.createNewTour);
+  .post(tourController.validatePostRequestBody, tourController.createNewTour);
 
 router
   .route('/:id')

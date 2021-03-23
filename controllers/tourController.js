@@ -17,15 +17,13 @@ exports.validateTourID = (req, res, next, val) => {
   next();
 };
 
-exports.validateRequestBody = (req, res, next) => {
+exports.validatePostRequestBody = (req, res, next) => {
   console.log('ValidateRequestBody was fired');
-  if (req.method === 'POST') {
-    if (!req.body.name || !req.body.price) {
-      return res.status(400).json({
-        status: 'fail',
-        msg: 'Invalid body data',
-      });
-    }
+  if (!req.body.name || !req.body.price) {
+    return res.status(400).json({
+      status: 'fail',
+      msg: 'Invalid body data',
+    });
   }
 
   return next();
