@@ -1,27 +1,75 @@
 const Tour = require('../models/tourModel');
 
-exports.getAllTours = async (req, res) => {
-  try {
-    // basic filtering
-    const queryObject = { ...req.query };
+class APIfeatures {
+  constructor(query, queryString) {
+    this.query = query;
+    this.queryString = queryString;
+  }
+
+  filter() {
+    const queryObject = { ...this.queryString };
     const excludes = ['page', 'sort', 'limit', 'fields'];
     excludes.forEach((el) => delete queryObject[el]);
 
     // advanced filtering
     let queryStr = JSON.stringify(queryObject);
     queryStr = queryStr.replace(/\b(gte|gt|lte|lt)\b/g, (match) => `$${match}`);
-    console.log(JSON.parse(queryStr));
 
-    let query = Tour.find(JSON.parse(queryStr));
+    this.query = this.query.find(JSON.parse(queryStr));
 
-    // sorting
-    if (req.query.sort) {
-      query = query.sort(req.query.sort);
+    return this;
+  }
+
+  sort() {
+    if (this.queryString.sort) {
+      const sortyBy = this.queryString.sort.split(',').join(' ');
+      this.query = this.query.sort(sortyBy);
+    } else {
+      this.query = this.query.sort('_id');
     }
 
-    // execute query
+    return this;
+  }
 
-    const tours = await query;
+  fields() {
+    // data limiting by fields
+    if (this.queryString.fields) {
+      const fields = this.queryString.fields.split(',').join(' ');
+      this.query = this.query.select(fields);
+    } else {
+      this.query = this.query.select('-__v');
+    }
+
+    return this;
+  }
+
+  page() {
+    const page = this.queryString.page * 1 || 1;
+    const limit = this.queryString.limit * 1 || 100;
+    const skip = (page - 1) * limit;
+
+    this.query = this.query.skip(skip).limit(limit);
+    return this;
+  }
+}
+
+exports.aliasTopTours = (req, res, next) => {
+  req.query.limit = '5';
+  req.query.sort = '-ratingAverage,price';
+  req.query.fields = 'name,proce,ratingAverage,summary,difficulty';
+  next();
+};
+
+exports.getAllTours = async (req, res) => {
+  try {
+    // execute query
+    const features = new APIfeatures(Tour.find(), req.query)
+      .filter()
+      .sort()
+      .fields()
+      .page();
+
+    const tours = await features.query;
 
     res.status(200).json({
       status: 'success',
